@@ -46,9 +46,10 @@ CTRL2="${5:-}"
 
 # Merge controls if requested
 if "$ARE_CTRLS_MERGED" && [ -n "$CTRL2" ]; then
-    samtools merge -f -@ 8 ctrl1.bam "$CTRL1" "$CTRL2"
-    CTRL1="ctrl1.bam"
-    echo "Controls have been merged into ctrl1.bam"
+    samtools merge -f -@ 8 ctrl.bam "$CTRL1" "$CTRL2"
+    CTRL1="ctrl.bam"
+    unset $CTRL2
+    echo "Controls have been merged into ctrl.bam"
 fi
 
 
