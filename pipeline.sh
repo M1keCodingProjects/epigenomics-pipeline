@@ -147,7 +147,7 @@ echo "    Fraction of overlapping peaks: $fraction"
 # Comparison with the ENCODE results
 bedtools sort -i "$ENCODE" > ENCODE_peaks.narrowPeak
 
-NAMES=("REP1" "REP2" "MERGE" $REP_COMP_NAME "REP1_in_MERGE" "REP2_in_MERGE")
+NAMES=("REP1" "REP2" "MERGE" "$REP_COMP_NAME" "REP1_in_MERGE" "REP2_in_MERGE")
 for NAME in "${NAMES[@]}"; do
     echo "Jaccard index for $NAME vs $ENCODE:"
     bedtools jaccard -a "${NAME}_peaks.narrowPeak" -b ENCODE_peaks.narrowPeak
