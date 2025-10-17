@@ -38,7 +38,7 @@ CTRL1="$4"
 CTRL2="${5:-}"
 
 # Merge controls if requested
-if $ARE_CTRLS_MERGED && [ -n "$CTRL2" ]; then
+if "$ARE_CTRLS_MERGED" && [ -n "$CTRL2" ]; then
     samtools merge -f ctrl1.bam "$CTRL1" "$CTRL2"
     CTRL1="ctrl1.bam"
     echo "Controls have been merged into ctrl1.bam"
@@ -54,39 +54,42 @@ FILTERED_NAMES=("filtered1" "filtered2" "filtered_ctrl1")
 
 echo "Filtering mapping files..."
 for i in "${!BAMS[@]}"; do
-    samtools view -bq 1 "$BAMS[$i]" > "${FILTERED_NAMES[$i]}.bam"
+    samtools view -bq 1 "${BAMS[$i]}" > "${FILTERED_NAMES[$i]}.bam"
 done
 
 
 # Mapping QC
 for i in "${!BAMS[@]}"; do
-    echo "$BAMS[$i] mapping statistics:"
-    samtools flagstat "$BAMS[$i]"
+    echo "${BAMS[$i]} mapping statistics:"
 
-    READS_AMT=$(samtools view -c "$BAMS[$i]")
-    echo "    Total reads: $READS_AMT"
+    READS_AMT=$(samtools view -c "${BAMS[$i]}")
+    echo "Total reads: $READS_AMT"
 
-    MAPPING_AMT=$(samtools view -c -F 4 "$BAMS[$i]")
-    echo "    Mapping reads: $MAPPING_AMT"
+    MAPPING_AMT=$(samtools view -c -F 4 "${BAMS[$i]}")
+    echo "Mapping reads: $MAPPING_AMT"
 
     UMAPPING_AMT=$(samtools view -c "${FILTERED_NAMES[$i]}.bam")
-    echo "    Uniquely mapping reads: $UMAPPING_AMT"
+    echo "Uniquely mapping reads: $UMAPPING_AMT"
 
     MMAPPING_AMT=$((MAPPING_AMT - UMAPPING_AMT))
-    echo "    Multi-mapping reads (mapping but not uniquely): $MMAPPING_AMT"
+    echo "Multi-mapping reads (mapping but not uniquely): $MMAPPING_AMT"
+
+    echo
+    samtools flagstat "${BAMS[$i]}"
+    echo
 done
 
 
 # Peak calling
 echo "Calling peaks..."
 if [ -n "$CTRL2" ]; then
-    macs2 callpeak -t f1.bam -c fc1.bam -q "$FDR_THRESHOLD" -g hs -n REP1
-    macs2 callpeak -t f2.bam -c fc2.bam -q "$FDR_THRESHOLD" -g hs -n REP2
-    macs2 callpeak -t f1.bam f2.bam -c fc1.bam fc2.bam -q "$FDR_THRESHOLD" -g hs -n MERGE
+    macs2 callpeak -t filtered1.bam               -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n REP1
+    macs2 callpeak -t filtered2.bam               -c filtered_ctrl2.bam -q "$FDR_THRESHOLD" -g hs -n REP2
+    macs2 callpeak -t filtered1.bam filtered2.bam -c filtered_ctrl1.bam filtered_ctrl2.bam -q "$FDR_THRESHOLD" -g hs -n MERGE
 else
-    macs2 callpeak -t f1.bam -c fc1.bam -q "$FDR_THRESHOLD" -g hs -n REP1
-    macs2 callpeak -t f2.bam -c fc1.bam -q "$FDR_THRESHOLD" -g hs -n REP2
-    macs2 callpeak -t f1.bam f2.bam -c fc1.bam -q "$FDR_THRESHOLD" -g hs -n MERGE
+    macs2 callpeak -t filtered1.bam               -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n REP1
+    macs2 callpeak -t filtered2.bam               -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n REP2
+    macs2 callpeak -t filtered1.bam filtered2.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n MERGE
 fi
 
 
