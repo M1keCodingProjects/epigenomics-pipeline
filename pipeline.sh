@@ -77,30 +77,42 @@ for i in "${!BAMS[@]}"; do
     echo
     samtools flagstat "${BAMS[$i]}"
     echo
+    echo
 done
 
 
 # Peak calling
 echo "Calling peaks..."
 if [ -n "$CTRL2" ]; then
-    macs2 callpeak -t filtered1.bam               -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n REP1
-    macs2 callpeak -t filtered2.bam               -c filtered_ctrl2.bam -q "$FDR_THRESHOLD" -g hs -n REP2
-    macs2 callpeak -t filtered1.bam filtered2.bam -c filtered_ctrl1.bam filtered_ctrl2.bam -q "$FDR_THRESHOLD" -g hs -n MERGE
-else
-    macs2 callpeak -t filtered1.bam               -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n REP1
-    macs2 callpeak -t filtered2.bam               -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n REP2
-    macs2 callpeak -t filtered1.bam filtered2.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n MERGE
-fi
+    macs2 callpeak -t filtered1.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n REP1
+    echo
 
+    macs2 callpeak -t filtered2.bam -c filtered_ctrl2.bam -q "$FDR_THRESHOLD" -g hs -n REP2
+    echo
+    
+    macs2 callpeak -t filtered1.bam filtered2.bam -c filtered_ctrl1.bam filtered_ctrl2.bam -q "$FDR_THRESHOLD" -g hs -n MERGE
+    echo
+else
+    macs2 callpeak -t filtered1.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n REP1
+    echo
+    
+    macs2 callpeak -t filtered2.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n REP2
+    echo
+    
+    macs2 callpeak -t filtered1.bam filtered2.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n MERGE
+    echo
+fi
+echo
 
 # R plots
 R < REP1_model.r --vanilla
 R < REP2_model.r --vanilla
 R < MERGE_model.r --vanilla
 echo "R plots are available as pdfs"
-
+echo
 
 # Computing overlaps
+echo "Computing overlaps..."
 rep1_count=$(wc -l < REP1_peaks.narrowPeak)
 rep2_count=$(wc -l < REP2_peaks.narrowPeak)
 merge_count=$(wc -l < MERGE_peaks.narrowPeak)
@@ -127,6 +139,7 @@ fi
 echo "    Summit proximity: $summitProx"
 echo "    Overlapping peaks: $overlaps"
 echo "    Fraction of overlapping peaks: $fraction"
+echo
 
 bedtools intersect -a REP1_peaks.narrowPeak -b MERGE_peaks.narrowPeak -u > REP1_in_MERGE.narrowPeak    
 summitProx=$(bedtools closest -a REP1_summits.bed -b MERGE_summits.bed -d | awk '$NF <= 100' | wc -l)
@@ -136,6 +149,7 @@ echo "REP1 (${rep1_count} peaks) vs MERGE (${merge_count} peaks):"
 echo "    Summit proximity: $summitProx"
 echo "    Overlapping peaks: $overlaps"
 echo "    Fraction of overlapping peaks: $fraction"
+echo
 
 bedtools intersect -a REP2_peaks.narrowPeak -b MERGE_peaks.narrowPeak -u > REP2_in_MERGE.narrowPeak    
 summitProx=$(bedtools closest -a REP2_summits.bed -b MERGE_summits.bed -d | awk '$NF <= 100' | wc -l)
@@ -145,16 +159,16 @@ echo "REP2 (${rep2_count} peaks) vs MERGE (${merge_count} peaks):"
 echo "    Summit proximity: $summitProx"
 echo "    Overlapping peaks: $overlaps"
 echo "    Fraction of overlapping peaks: $fraction"
-
+echo
 
 # Comparison with the ENCODE results
 bedtools sort -i "$ENCODE" > ENCODE_peaks.narrowPeak
-
 NAMES=("REP1" "REP2" "MERGE" "$REP_COMP_NAME" "REP1_in_MERGE" "REP2_in_MERGE")
 for NAME in "${NAMES[@]}"; do
     echo "Jaccard index for $NAME vs $ENCODE:"
     bedtools jaccard -a "${NAME}_peaks.narrowPeak" -b ENCODE_peaks.narrowPeak
+    echo
 done
-
+echo
 
 echo "All done!"
