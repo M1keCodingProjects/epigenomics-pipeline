@@ -46,19 +46,20 @@ CTRL2="${5:-}"
 
 # Merge controls if requested
 if "$ARE_CTRLS_MERGED" && [ -n "$CTRL2" ]; then
+    echo "Merging control files..."
     samtools merge -f -@ 8 ctrl.bam "$CTRL1" "$CTRL2"
     CTRL1="ctrl.bam"
-    unset $CTRL2
+    unset CTRL2
     echo "Controls have been merged into ctrl.bam"
 fi
 
 
 # Filtering
 BAMS=("$REP1" "$REP2" "$CTRL1")
-[ -n "$CTRL2" ] && BAMS+=("$CTRL2")
+[ -n "${CTRL2:-}" ] && BAMS+=("$CTRL2")
 
 FILTERED_NAMES=("filtered1" "filtered2" "filtered_ctrl1")
-[ -n "$CTRL2" ] && FILTERED_NAMES+=("filtered_ctrl2")
+[ -n "${CTRL2:-}" ] && FILTERED_NAMES+=("filtered_ctrl2")
 
 echo "Filtering mapping files..."
 for i in "${!BAMS[@]}"; do
@@ -91,7 +92,7 @@ done
 
 # Peak calling
 echo "Calling peaks..."
-if [ -n "$CTRL2" ]; then
+if [ -n "${CTRL2:-}" ]; then
     macs2 callpeak -t filtered1.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n REP1 > /dev/null
     echo
 
