@@ -5,7 +5,7 @@ set -euo pipefail
 # Processing ENCODE ChIP-Seq for TF binding from unfiltered mapping files
 # =======================================================================
 # Usage:
-#   pipeline.sh [-h] [-m] [-c] <encode.narrowPeak> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam] [-o output.txt]
+#   pipeline.sh [-h] [-m] [-c] [-o output.txt] <encode.narrowPeak> <blacklist.bed> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam]
 #
 # Options:
 #   -h    print this help message and exit.
@@ -19,7 +19,7 @@ set -euo pipefail
 #   -o    use the provided name for the output file containing the quality control parameters
 #         of the analysis, instead of the default (qc_params.txt)
 
-HELP_MSG="Usage: $0 [-h] [-m] [-c] [-o output.txt] <encode.narrowPeak> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam]"
+HELP_MSG="Usage: $0 [-h] [-m] [-c] [-o output.txt] <encode.narrowPeak> <blacklist.bed> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam]"
 
 ARE_CTRLS_MERGED=false
 FDR_THRESHOLD=0.05
@@ -59,16 +59,17 @@ while getopts "hmco:" opt; do
 done
 shift $((OPTIND -1))
 
-if [ $# -lt 4 ]; then
+if [ $# -lt 5 ]; then
     echo $HELP_MSG
     exit 1
 fi
 
 ENCODE="$1"
-REP1="$2"
-REP2="$3"
-CTRL1="$4"
-CTRL2="${5:-}"
+BLACKLIST="$2"
+REP1="$3"
+REP2="$4"
+CTRL1="$5"
+CTRL2="${6:-}"
 
 echo "Full analysis output available in $OUTPUT"
 echo
@@ -211,6 +212,8 @@ echo "  Overlapping peaks: $OVERLAPS" | tee -a "$OUTPUT"
 echo "  Fraction of overlapping peaks: $FRACTION" | tee -a "$OUTPUT"
 
 # Comparison with the ENCODE results
+echo
+echo "Comparing with ENCODE results..."
 bedtools sort -i "$ENCODE" > ENCODE_peaks.narrowPeak
 NAMES=("REP1" "REP2" "MERGE" "$REP_COMP_NAME")
 for NAME in "${NAMES[@]}"; do
@@ -227,15 +230,26 @@ for NAME in "${NAMES[@]}"; do
         INTERSECT_JI="$JACCARD_INDEX"
     fi
 done
-echo | tee -a "$OUTPUT"
 
 # Determine final peak set:
+echo | tee -a "$OUTPUT"
+echo "Filtering..."
 if awk "BEGIN {exit !($INTERSECT_JI > $MERGE_JI)}"; then
     FINAL_SET="$REP_COMP_NAME"
     bedtools intersect -a ${SMALL}_summits.bed -b ${FINAL_SET}_peaks.narrowPeak -u > ${FINAL_SET}_summits.bed
 else
     FINAL_SET="MERGE"
 fi
-echo "The final peak set is ${FINAL_SET}_peaks.narrowPeak, you can find the corresponding summits in ${FINAL_SET}_summits.bed" | tee -a "$OUTPUT"
 
+# Filter out black-listed regions:
+bedtools intersect -a ${FINAL_SET}_peaks.narrowPeak -b "${BLACKLIST}" -v > ${FINAL_SET}_filtered_peaks.narrowPeak
+bedtools intersect -a ${FINAL_SET}_summits.bed -b ${FINAL_SET}_filtered_peaks.narrowPeak -u > ${FINAL_SET}_filtered_summits.bed
+
+FINAL_COUNT=$(wc -l < ${FINAL_SET}_peaks.narrowPeak)
+FILTERED_COUNT=$(wc -l < ${FINAL_SET}_filtered_peaks.narrowPeak)
+echo "  $((FINAL_COUNT - FILTERED_COUNT)) regions were black-listed and have been removed." | tee -a "$OUTPUT"
+
+echo "The final peak set is ${FINAL_SET}_filtered_peaks.narrowPeak, you can find the corresponding summits in ${FINAL_SET}_filtered_summits.bed" | tee -a "$OUTPUT"
+
+echo
 echo "All done!"
