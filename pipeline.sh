@@ -179,28 +179,22 @@ echo "  Overlapping peaks: $overlaps" | tee -a "$OUTPUT"
 echo "  Fraction of overlapping peaks: $fraction" | tee -a "$OUTPUT"
 echo | tee -a "$OUTPUT"
 
-bedtools intersect -a REP1_peaks.narrowPeak -b MERGE_peaks.narrowPeak -u > REP1_in_MERGE_peaks.narrowPeak    
-summitProx=$(bedtools closest -a REP1_summits.bed -b MERGE_summits.bed -d | awk '$NF <= 100' | wc -l)
-overlaps=$(wc -l < REP1_in_MERGE_peaks.narrowPeak)
+overlaps=$(bedtools intersect -a REP1_peaks.narrowPeak -b MERGE_peaks.narrowPeak -u | wc -l)
 fraction=$(awk "BEGIN {printf \"%.3f\", $overlaps/$rep1_count}")
 echo "REP1 (${rep1_count} peaks) vs MERGE (${merge_count} peaks):" | tee -a "$OUTPUT"
-echo "  Summit proximity: $summitProx" | tee -a "$OUTPUT"
 echo "  Overlapping peaks: $overlaps" | tee -a "$OUTPUT"
 echo "  Fraction of overlapping peaks: $fraction" | tee -a "$OUTPUT"
 echo | tee -a "$OUTPUT"
 
-bedtools intersect -a REP2_peaks.narrowPeak -b MERGE_peaks.narrowPeak -u > REP2_in_MERGE_peaks.narrowPeak    
-summitProx=$(bedtools closest -a REP2_summits.bed -b MERGE_summits.bed -d | awk '$NF <= 100' | wc -l)
-overlaps=$(wc -l < REP2_in_MERGE_peaks.narrowPeak)
+overlaps=$(bedtools intersect -a REP2_peaks.narrowPeak -b MERGE_peaks.narrowPeak -u | wc -l)
 fraction=$(awk "BEGIN {printf \"%.3f\", $overlaps/$rep2_count}")
 echo "REP2 (${rep2_count} peaks) vs MERGE (${merge_count} peaks):" | tee -a "$OUTPUT"
-echo "  Summit proximity: $summitProx" | tee -a "$OUTPUT"
 echo "  Overlapping peaks: $overlaps" | tee -a "$OUTPUT"
 echo "  Fraction of overlapping peaks: $fraction" | tee -a "$OUTPUT"
 
 # Comparison with the ENCODE results
 bedtools sort -i "$ENCODE" > ENCODE_peaks.narrowPeak
-NAMES=("REP1" "REP2" "MERGE" "$REP_COMP_NAME" "REP1_in_MERGE" "REP2_in_MERGE")
+NAMES=("REP1" "REP2" "MERGE" "$REP_COMP_NAME")
 for NAME in "${NAMES[@]}"; do
     echo | tee -a "$OUTPUT"
     echo "Jaccard index for ${NAME} vs ENCODE:" | tee -a "$OUTPUT"
