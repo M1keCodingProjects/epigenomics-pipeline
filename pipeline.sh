@@ -115,27 +115,27 @@ done
 echo "Calling peaks..."
 if [ -n "${CTRL2:-}" ]; then
     echo "Calling peaks on ${REP1}..."
-    macs2 callpeak -t filtered1.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n REP1 > macs2_log.txt 2>&1
+    macs2 callpeak -t filtered1.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -B --SPMR -n REP1 > macs2_log.txt 2>&1
     echo | tee -a macs2_log.txt
 
     echo "Calling peaks on ${REP2}..."
-    macs2 callpeak -t filtered2.bam -c filtered_ctrl2.bam -q "$FDR_THRESHOLD" -g hs -n REP2 >> macs2_log.txt 2>&1
+    macs2 callpeak -t filtered2.bam -c filtered_ctrl2.bam -q "$FDR_THRESHOLD" -g hs -B --SPMR -n REP2 >> macs2_log.txt 2>&1
     echo | tee -a macs2_log.txt
     
     echo "Calling peaks on the 2 replicates merged..."
-    macs2 callpeak -t filtered1.bam filtered2.bam -c filtered_ctrl1.bam filtered_ctrl2.bam -q "$FDR_THRESHOLD" -g hs -n MERGE >> macs2_log.txt 2>&1
+    macs2 callpeak -t filtered1.bam filtered2.bam -c filtered_ctrl1.bam filtered_ctrl2.bam -q "$FDR_THRESHOLD" -g hs -B --SPMR -n MERGE >> macs2_log.txt 2>&1
     echo | tee -a macs2_log.txt
 else
     echo "Calling peaks on ${REP1}..."
-    macs2 callpeak -t filtered1.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n REP1 > macs2_log.txt 2>&1
+    macs2 callpeak -t filtered1.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -B --SPMR -n REP1 > macs2_log.txt 2>&1
     echo | tee -a macs2_log.txt
     
     echo "Calling peaks on ${REP2}..."
-    macs2 callpeak -t filtered2.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n REP2 >> macs2_log.txt 2>&1
+    macs2 callpeak -t filtered2.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -B --SPMR -n REP2 >> macs2_log.txt 2>&1
     echo | tee -a macs2_log.txt
     
     echo "Calling peaks on the 2 replicates merged..."
-    macs2 callpeak -t filtered1.bam filtered2.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -n MERGE >> macs2_log.txt 2>&1
+    macs2 callpeak -t filtered1.bam filtered2.bam -c filtered_ctrl1.bam -q "$FDR_THRESHOLD" -g hs -B --SPMR -n MERGE >> macs2_log.txt 2>&1
     echo | tee -a macs2_log.txt
 fi
 echo
