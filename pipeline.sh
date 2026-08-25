@@ -5,9 +5,11 @@ set -euo pipefail
 # Processing ENCODE ChIP-Seq for TF binding from unfiltered mapping files
 # =======================================================================
 # Usage:
-#   pipeline.sh [-m] [-c] <encode.narrowPeak> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam] [-o output.txt]
+#   pipeline.sh [-h] [-m] [-c] <encode.narrowPeak> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam] [-o output.txt]
 #
 # Options:
+#   -h    print this help message and exit.
+#
 #   -m    merge ctrl1.bam and ctrl2.bam into one file, meaningful if they represent portions of
 #         a single control experiment.
 #
@@ -17,30 +19,48 @@ set -euo pipefail
 #   -o    use the provided name for the output file containing the quality control parameters
 #         of the analysis, instead of the default (qc_params.txt)
 
-ARE_CTRLS_MERGED=false
-if [ "${1:-}" = "-m" ]; then
-    ARE_CTRLS_MERGED=true
-    shift
-fi
+HELP_MSG="Usage: $0 [-h] [-m] [-c] [-o output.txt] <encode.narrowPeak> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam]"
 
+ARE_CTRLS_MERGED=false
 FDR_THRESHOLD=0.05
-if [ "${1:-}" = "-c" ]; then
-    FDR_THRESHOLD=0.01
-    shift
-fi
+OUTPUT="./qc_params.txt"
+while getopts "hmco:" opt; do
+    case ${opt} in
+        h )
+            echo $HELP_MSG
+            echo
+            echo " Options:"
+            echo "   -h    print this help message and exit."
+            echo
+            echo "   -m    merge ctrl1.bam and ctrl2.bam into one file, meaningful if they represent portions of"
+            echo "         a single control experiment."
+            echo
+            echo "   -c    CRISPR MODE: use 0.01 as FDR threshold for peak calling with MACS2, instead of the"
+            echo "         default (0.05)."
+            echo
+            echo "   -o    use the provided name for the output file containing the quality control parameters"
+            echo "         of the analysis, instead of the default (qc_params.txt)"
+            exit 1
+            ;;
+        m )
+            ARE_CTRLS_MERGED=true
+            ;;
+        c )
+            FDR_THRESHOLD=0.01
+            ;;
+        o )
+            OUTPUT="$OPTARG"
+            ;;
+        \? )
+            echo $HELP_MSG
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND -1))
 
 if [ $# -lt 4 ]; then
-    echo "Usage: $0 [-m] [-c] <encode.narrowPeak> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam] [-o] [output.txt]"
-    echo
-    echo " Options:"
-    echo "   -m    merge ctrl1.bam and ctrl2.bam into one file, meaningful if they represent portions of"
-    echo "         a single control experiment."
-    echo
-    echo "   -c    CRISPR MODE: use 0.01 as FDR threshold for peak calling with MACS2, instead of the"
-    echo "         default (0.05)."
-    echo
-    echo "   -o    use the provided name for the output file containing the quality control parameters"
-    echo "         of the analysis, instead of the default (qc_params.txt)"
+    echo $HELP_MSG
     exit 1
 fi
 
@@ -50,11 +70,7 @@ REP2="$3"
 CTRL1="$4"
 CTRL2="${5:-}"
 
-OUTPUT="./qc_params.txt"
-if [ "${6:-}" = "-o" ] && [ -n "${7:-}" ]; then
-    OUTPUT="$7"
-fi
-echo "Check mapping and peak overlaps QC parameters in $OUTPUT"
+echo "Full analysis output available in $OUTPUT"
 echo
 
 # Merge controls if requested
