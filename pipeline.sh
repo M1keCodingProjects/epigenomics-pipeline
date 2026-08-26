@@ -5,7 +5,7 @@ set -euo pipefail
 # Processing ENCODE ChIP-Seq for TF binding from unfiltered mapping files
 # =======================================================================
 # Usage:
-#   pipeline.sh [-h] [-m] [-c] [-o output.txt] <encode.narrowPeak> <blacklist.bed> <chromHMM.bed> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam]
+#   pipeline.sh [-h] [-m] [-c] [-o output.txt] <encode.bed> <blacklist.bed> <chromHMM.bed> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam]
 #
 # Options:
 #   -h    print this help message and exit.
@@ -19,7 +19,7 @@ set -euo pipefail
 #   -o    use the provided name for the output file containing the quality control parameters
 #         of the analysis, instead of the default (qc_params.txt)
 
-HELP_MSG="Usage: $0 [-h] [-m] [-c] [-o output.txt] <encode.narrowPeak> <blacklist.bed> <chromHMM.bed> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam]"
+HELP_MSG="Usage: $0 [-h] [-m] [-c] [-o output.txt] <encode.bed> <blacklist.bed> <chromHMM.bed> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam]"
 
 ARE_CTRLS_MERGED=false
 FDR_THRESHOLD=0.05
@@ -234,7 +234,7 @@ bedtools sort -i "$ENCODE" > ENCODE_peaks.narrowPeak
 
 ENCODE_COUNT=$(wc -l < ENCODE_peaks.narrowPeak)
 echo | tee -a "$OUTPUT"
-echo "ENCODE reports ${ENCODE_COUNT} peaks."
+echo "ENCODE reports ${ENCODE_COUNT} peaks." | tee -a "$OUTPUT"
 
 NAMES=("REP1" "REP2" "MERGE" "$REP_COMP_NAME")
 for NAME in "${NAMES[@]}"; do
@@ -310,7 +310,7 @@ echo "Summits annotated with each chromatin state:" | tee -a "$OUTPUT"
 for STATE in "${CHROM_STATES[@]}"; do
     SUMMITS=$(awk -v STATE="$STATE" "\$9 == STATE" final_annotated_summits.bed | wc -l)
     SUMMITS_FRAC=$(awk "BEGIN {printf \"%.3f%%\", ($SUMMITS/$FILTERED_COUNT)*100}")
-    echo "${STATE} : ${SUMMITS} summits ($SUMMITS_FRAC)" | tee -a "$OUTPUT"
+    echo "  ${STATE} : ${SUMMITS} summits ($SUMMITS_FRAC)" | tee -a "$OUTPUT"
 done
 
 echo | tee -a "$OUTPUT"
