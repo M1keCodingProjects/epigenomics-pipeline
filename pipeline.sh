@@ -5,7 +5,7 @@ set -euo pipefail
 # Processing ENCODE ChIP-Seq for TF binding from unfiltered mapping files
 # =======================================================================
 # Usage:
-#   pipeline.sh [-h] [-m] [-c] [-o output.txt] <encode.narrowPeak> <blacklist.bed> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam]
+#   pipeline.sh [-h] [-m] [-c] [-o output.txt] <encode.narrowPeak> <blacklist.bed> <chromHMM.bed> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam]
 #
 # Options:
 #   -h    print this help message and exit.
@@ -19,7 +19,7 @@ set -euo pipefail
 #   -o    use the provided name for the output file containing the quality control parameters
 #         of the analysis, instead of the default (qc_params.txt)
 
-HELP_MSG="Usage: $0 [-h] [-m] [-c] [-o output.txt] <encode.narrowPeak> <blacklist.bed> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam]"
+HELP_MSG="Usage: $0 [-h] [-m] [-c] [-o output.txt] <encode.narrowPeak> <blacklist.bed> <chromHMM.bed> <rep1.bam> <rep2.bam> <ctrl1.bam> [ctrl2.bam]"
 
 ARE_CTRLS_MERGED=false
 FDR_THRESHOLD=0.05
@@ -59,17 +59,18 @@ while getopts "hmco:" opt; do
 done
 shift $((OPTIND -1))
 
-if [ $# -lt 5 ]; then
+if [ $# -lt 6 ]; then
     echo $HELP_MSG
     exit 1
 fi
 
 ENCODE="$1"
 BLACKLIST="$2"
-REP1="$3"
-REP2="$4"
-CTRL1="$5"
-CTRL2="${6:-}"
+CHROM_HMM="$3"
+REP1="$4"
+REP2="$5"
+CTRL1="$6"
+CTRL2="${7:-}"
 
 > "$OUTPUT"
 echo "Full analysis output available in $OUTPUT."
@@ -264,14 +265,12 @@ fi
 
 
 # Filter out black-listed regions:
-bedtools intersect -a ${FINAL_SET}_peaks.narrowPeak -b "${BLACKLIST}" -v > ${FINAL_SET}_filtered_peaks.narrowPeak
-bedtools intersect -a ${FINAL_SET}_summits.bed -b ${FINAL_SET}_filtered_peaks.narrowPeak -u > ${FINAL_SET}_filtered_summits.bed
+bedtools intersect -a ${FINAL_SET}_peaks.narrowPeak -b "${BLACKLIST}" -v > final_peaks.narrowPeak
+bedtools intersect -a ${FINAL_SET}_summits.bed -b final_peaks.narrowPeak -u > final_summits.bed
 
 FINAL_COUNT=$(wc -l < ${FINAL_SET}_peaks.narrowPeak)
-FILTERED_COUNT=$(wc -l < ${FINAL_SET}_filtered_peaks.narrowPeak)
+FILTERED_COUNT=$(wc -l < final_peaks.narrowPeak)
 echo "$((FINAL_COUNT - FILTERED_COUNT)) regions were black-listed and have been removed." | tee -a "$OUTPUT"
-
-echo "The final peak set is ${FINAL_SET}_filtered_peaks.narrowPeak, you can find the corresponding summits in ${FINAL_SET}_filtered_summits.bed." | tee -a "$OUTPUT"
 
 
 # Generating boxplots:
@@ -291,14 +290,31 @@ dev.off()
 EOF
 fi
 
-ENCODE_INTERSECT="ENCODE_and_${FINAL_SET}_filtered_peaks.narrowPeak"
-FINAL_SET_NO_ENCODE="${FINAL_SET}_not_in_ENCODE_filtered_peaks.narrowPeak"
+ENCODE_INTERSECT="ENCODE_and_final_peaks.narrowPeak"
+FINAL_SET_NO_ENCODE="final_not_in_ENCODE_peaks.narrowPeak"
 
-bedtools intersect -a "${FINAL_SET}_filtered_peaks.narrowPeak" -b ENCODE_peaks.narrowPeak -u > $ENCODE_INTERSECT
-bedtools intersect -a "${FINAL_SET}_filtered_peaks.narrowPeak" -b ENCODE_peaks.narrowPeak -v > $FINAL_SET_NO_ENCODE
+bedtools intersect -a final_peaks.narrowPeak -b ENCODE_peaks.narrowPeak -u > $ENCODE_INTERSECT
+bedtools intersect -a final_peaks.narrowPeak -b ENCODE_peaks.narrowPeak -v > $FINAL_SET_NO_ENCODE
 
-Rscript boxplots.R $ENCODE_INTERSECT $FINAL_SET_NO_ENCODE
+Rscript boxplots.R $ENCODE_INTERSECT $FINAL_SET_NO_ENCODE > /dev/null
 echo "Boxplots are available in boxplots.pdf." | tee -a "$OUTPUT"
+
+
+# Chromatin states:
+bedtools intersect -a final_summits.bed -b "${CHROM_HMM}" -wa -wb > final_annotated_summits.bed
+
+CHROM_STATES=($(cut -f 4 "${CHROM_HMM}" | sort -u))
+echo | tee -a "$OUTPUT"
+echo "Summits annotated with each chromatin state:" | tee -a "$OUTPUT"
+
+for STATE in "${CHROM_STATES[@]}"; do
+    SUMMITS=$(awk -v STATE="$STATE" "\$9 == STATE" final_annotated_summits.bed | wc -l)
+    SUMMITS_FRAC=$(awk "BEGIN {printf \"%.3f%%\", ($SUMMITS/$FILTERED_COUNT)*100}")
+    echo "${STATE} : ${SUMMITS} summits ($SUMMITS_FRAC)" | tee -a "$OUTPUT"
+done
+
+echo | tee -a "$OUTPUT"
+echo "The final peak set is final_peaks.narrowPeak, you can find the corresponding summits in final_annotated_summits.bed." | tee -a "$OUTPUT"
 
 echo
 echo "All done!"
