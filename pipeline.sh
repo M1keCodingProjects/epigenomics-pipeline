@@ -209,7 +209,7 @@ OVERLAPS=$(bedtools intersect -a REP1_peaks.narrowPeak -b MERGE_peaks.narrowPeak
 FRACTION=$(awk "BEGIN {printf \"%.3f\", $OVERLAPS/$REP1_COUNT}")
 
 echo | tee -a "$OUTPUT"
-echo "REP1 (${REP1_COUNT} peaks) vs MERGE (${MERGE_COUNT} peaks):" | tee -a "$OUTPUT"
+echo "REP1 (${REP1_COUNT} peaks) in MERGE (${MERGE_COUNT} peaks):" | tee -a "$OUTPUT"
 echo "  Overlapping peaks: $OVERLAPS" | tee -a "$OUTPUT"
 echo "  Fraction of overlapping peaks: $FRACTION" | tee -a "$OUTPUT"
 
@@ -218,7 +218,7 @@ OVERLAPS=$(bedtools intersect -a REP2_peaks.narrowPeak -b MERGE_peaks.narrowPeak
 FRACTION=$(awk "BEGIN {printf \"%.3f\", $OVERLAPS/$REP2_COUNT}")
 
 echo | tee -a "$OUTPUT"
-echo "REP2 (${REP2_COUNT} peaks) vs MERGE (${MERGE_COUNT} peaks):" | tee -a "$OUTPUT"
+echo "REP2 (${REP2_COUNT} peaks) in MERGE (${MERGE_COUNT} peaks):" | tee -a "$OUTPUT"
 echo "  Overlapping peaks: $OVERLAPS" | tee -a "$OUTPUT"
 echo "  Fraction of overlapping peaks: $FRACTION" | tee -a "$OUTPUT"
 
@@ -227,6 +227,11 @@ echo "  Fraction of overlapping peaks: $FRACTION" | tee -a "$OUTPUT"
 echo
 echo "Comparing with ENCODE results..."
 bedtools sort -i "$ENCODE" > ENCODE_peaks.narrowPeak
+
+ENCODE_COUNT=$(wc -l < ENCODE_peaks.narrowPeak)
+echo | tee -a "$OUTPUT"
+echo "ENCODE reports ${ENCODE_COUNT} peaks."
+
 NAMES=("REP1" "REP2" "MERGE" "$REP_COMP_NAME")
 for NAME in "${NAMES[@]}"; do
     echo | tee -a "$OUTPUT"
@@ -243,6 +248,7 @@ for NAME in "${NAMES[@]}"; do
     fi
 done
 
+
 # Determine final peak set:
 echo | tee -a "$OUTPUT"
 echo "Filtering..."
@@ -252,6 +258,7 @@ if awk "BEGIN {exit !($INTERSECT_JI > $MERGE_JI)}"; then
 else
     FINAL_SET="MERGE"
 fi
+
 
 # Filter out black-listed regions:
 bedtools intersect -a ${FINAL_SET}_peaks.narrowPeak -b "${BLACKLIST}" -v > ${FINAL_SET}_filtered_peaks.narrowPeak
