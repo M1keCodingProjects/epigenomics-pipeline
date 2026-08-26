@@ -316,5 +316,10 @@ done
 echo | tee -a "$OUTPUT"
 echo "The final peak set is final_peaks.narrowPeak, you can find the corresponding summits in final_annotated_summits.bed." | tee -a "$OUTPUT"
 
+
+# GREAT filtering:
+cut -f 1-3 final_annotated_summits.bed > final_summit_positions.bed
+echo "The GREAT-ready final summit coordinates can be found in final_summit_positions.bed." | tee -a "$OUTPUT"
+
 echo
 echo "All done!"
