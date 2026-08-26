@@ -124,6 +124,9 @@ for i in "${!BAMS[@]}"; do
     MAPPING_F=$(awk "BEGIN {printf \"%.3f\", $MAPPING_AMT/$READS_AMT*100}")
     echo "  Mapping reads as a percentage of total reads: ${MAPPING_F}%" | tee -a "$OUTPUT"
 
+    MAPPING_F=$(awk "BEGIN {printf \"%.3f\", $UMAPPING_AMT/$READS_AMT*100}")
+    echo "  Uniquely mapping reads as a percentage of total reads: ${MAPPING_F}%" | tee -a "$OUTPUT"
+
     MMAPPING_F=$(awk "BEGIN {printf \"%.3f\", $MMAPPING_AMT/$MAPPING_AMT*100}")
     echo "  Multi-mapping reads as a percentage of mapping reads: ${MMAPPING_F}%" | tee -a "$OUTPUT"
 
