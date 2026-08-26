@@ -71,6 +71,7 @@ REP2="$4"
 CTRL1="$5"
 CTRL2="${6:-}"
 
+> "$OUTPUT"
 echo "Full analysis output available in $OUTPUT."
 
 # Merge controls if requested
