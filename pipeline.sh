@@ -268,7 +268,34 @@ FINAL_COUNT=$(wc -l < ${FINAL_SET}_peaks.narrowPeak)
 FILTERED_COUNT=$(wc -l < ${FINAL_SET}_filtered_peaks.narrowPeak)
 echo "$((FINAL_COUNT - FILTERED_COUNT)) regions were black-listed and have been removed." | tee -a "$OUTPUT"
 
-echo "The final peak set is ${FINAL_SET}_filtered_peaks.narrowPeak, you can find the corresponding summits in ${FINAL_SET}_filtered_summits.bed" | tee -a "$OUTPUT"
+echo "The final peak set is ${FINAL_SET}_filtered_peaks.narrowPeak, you can find the corresponding summits in ${FINAL_SET}_filtered_summits.bed." | tee -a "$OUTPUT"
+
+
+# Generating boxplots:
+echo
+echo "Generating boxplots..."
+
+# Check if the script already exists:
+if [ ! -f "boxplots.R" ]; then
+    cat << "EOF" > boxplots.R
+args <- commandArgs(trailingOnly=TRUE)
+overlapData <- read.table(args[1])[ ,9]
+uniqueData  <- read.table(args[2])[ ,9]
+
+pdf("boxplots.pdf")
+boxplot(overlapData, uniqueData, names = c("ENCODE Overlap", "Not in ENCODE"), ylab = "-log10(q-value)")
+dev.off()
+EOF
+fi
+
+ENCODE_INTERSECT="ENCODE_and_${FINAL_SET}_filtered_peaks.narrowPeak"
+FINAL_SET_NO_ENCODE="${FINAL_SET}_not_in_ENCODE_filtered_peaks.narrowPeak"
+
+bedtools intersect -a "${FINAL_SET}_filtered_peaks.narrowPeak" -b ENCODE_peaks.narrowPeak -u > $ENCODE_INTERSECT
+bedtools intersect -a "${FINAL_SET}_filtered_peaks.narrowPeak" -b ENCODE_peaks.narrowPeak -v > $FINAL_SET_NO_ENCODE
+
+Rscript boxplots.R $ENCODE_INTERSECT $FINAL_SET_NO_ENCODE
+echo "Boxplots are available in boxplots.pdf." | tee -a "$OUTPUT"
 
 echo
 echo "All done!"
