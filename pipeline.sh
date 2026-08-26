@@ -127,7 +127,7 @@ for i in "${!BAMS[@]}"; do
     MMAPPING_F=$(awk "BEGIN {printf \"%.3f\", $MMAPPING_AMT/$MAPPING_AMT*100}")
     echo "  Multi-mapping reads as a percentage of mapping reads: ${MMAPPING_F}%" | tee -a "$OUTPUT"
 
-    echo | tee -a "$OUTPUT"
+    echo
     samtools flagstat -@ 8 "${BAMS[$i]}"
     echo
 done
@@ -229,6 +229,7 @@ echo "Comparing with ENCODE results..."
 bedtools sort -i "$ENCODE" > ENCODE_peaks.narrowPeak
 NAMES=("REP1" "REP2" "MERGE" "$REP_COMP_NAME")
 for NAME in "${NAMES[@]}"; do
+    echo | tee -a "$OUTPUT"
     echo "Jaccard index for ${NAME} vs ENCODE:" | tee -a "$OUTPUT"
     JACCARD_INDEX=$(bedtools jaccard -a "${NAME}_peaks.narrowPeak" -b ENCODE_peaks.narrowPeak)
     echo "$JACCARD_INDEX" | column -t | tee -a "$OUTPUT"
@@ -240,8 +241,6 @@ for NAME in "${NAMES[@]}"; do
     elif [ "$NAME" = "$REP_COMP_NAME" ]; then
         INTERSECT_JI="$JACCARD_INDEX"
     fi
-
-    echo | tee -a "$OUTPUT"
 done
 
 # Determine final peak set:
@@ -260,7 +259,7 @@ bedtools intersect -a ${FINAL_SET}_summits.bed -b ${FINAL_SET}_filtered_peaks.na
 
 FINAL_COUNT=$(wc -l < ${FINAL_SET}_peaks.narrowPeak)
 FILTERED_COUNT=$(wc -l < ${FINAL_SET}_filtered_peaks.narrowPeak)
-echo "  $((FINAL_COUNT - FILTERED_COUNT)) regions were black-listed and have been removed." | tee -a "$OUTPUT"
+echo "$((FINAL_COUNT - FILTERED_COUNT)) regions were black-listed and have been removed." | tee -a "$OUTPUT"
 
 echo "The final peak set is ${FINAL_SET}_filtered_peaks.narrowPeak, you can find the corresponding summits in ${FINAL_SET}_filtered_summits.bed" | tee -a "$OUTPUT"
 
