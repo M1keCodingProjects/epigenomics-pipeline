@@ -301,7 +301,7 @@ echo "Boxplots are available in boxplots.pdf." | tee -a "$OUTPUT"
 
 
 # Chromatin states:
-bedtools intersect -a final_summits.bed -b "${CHROM_HMM}" -wa -wb > final_annotated_summits.bed
+bedtools intersect -a final_summits.bed -b "${CHROM_HMM}" -loj > final_annotated_summits.bed
 
 CHROM_STATES=($(cut -f 4 "${CHROM_HMM}" | sort -u))
 echo | tee -a "$OUTPUT"
